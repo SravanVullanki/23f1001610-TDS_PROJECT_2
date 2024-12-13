@@ -8,9 +8,9 @@
 #   "chardet",
 #   "scipy",
 #   "scikit-learn",
+#   "uv"
 # ]
 # ///
-
 
 import os
 import sys

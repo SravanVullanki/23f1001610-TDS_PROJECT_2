@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import argparse
 import requests
 import json
-import openai  
+import openai  # Make sure you install this library: pip install openai
 
 # Function to analyze the data (basic summary stats, missing values, correlation matrix)
 def analyze_data(df):
@@ -102,6 +102,8 @@ def visualize_data(corr_matrix, outliers, df, output_dir):
 
 
 # Function to create the README.md with a narrative and visualizations
+# Function to create the README.md with a narrative and visualizations
+# Function to create the README.md with a narrative and visualizations
 def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_dir):
     print("Creating README file...")  # Debugging line
     # Write the analysis report to a markdown file
@@ -173,13 +175,14 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
 
             # Adding Story Section
             f.write("## Data Story\n")
-            f.write("Based on the data analysis, here is a creative narrative that interprets the findings in an engaging and detailed manner:\n\n")
-
+           
         print(f"README file created: {readme_file}")  # Debugging line
         return readme_file
     except Exception as e:
         print(f"Error writing to README.md: {e}")
         return None
+
+
 
 
 # Function to generate a detailed story using the new OpenAI API through the proxy
@@ -245,16 +248,13 @@ def question_llm(prompt, context):
         return "Failed to generate story."
 
 
+
 # Main function that integrates all the steps
 def main(csv_file):
     print("Starting the analysis...")  # Debugging line
 
     # Set the API token as an environment variable
-    token = os.getenv("AIPROXY_TOKEN")
-    if not token:
-        print("AIPROXY_TOKEN environment variable is not set.")
-        return
-
+  
     # Try reading the CSV file with 'ISO-8859-1' encoding to handle special characters
     try:
         df = pd.read_csv(csv_file, encoding='ISO-8859-1')
@@ -307,6 +307,6 @@ def main(csv_file):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage: python autolysis.py <dataset_path>")
+        print("Usage: uv run autolysis.py <dataset_path>")
         sys.exit(1)
     main(sys.argv[1])

@@ -8,13 +8,12 @@
 #   "chardet",
 #   "scipy",
 #   "scikit-learn",
-#   "pyyaml"
+#   "uv"
 # ]
 # ///
 
 import os
 import sys
-import yaml
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -26,7 +25,6 @@ from sklearn.cluster import KMeans
 
 # Constants
 API_URL = "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
-CONFIG_PATH = "config.yaml"
 
 # Retrieve token from environment variable
 AIPROXY_TOKEN = os.environ.get("AIPROXY_TOKEN")
@@ -34,26 +32,13 @@ if not AIPROXY_TOKEN:
     print("Error: AIPROXY_TOKEN environment variable is not set.")
     sys.exit(1)
 
-# Load configuration
-def load_config():
-    """Load configuration from a YAML file."""
-    try:
-        with open(CONFIG_PATH, 'r') as file:
-            return yaml.safe_load(file)
-    except FileNotFoundError:
-        print(f"Error: Configuration file '{CONFIG_PATH}' not found.")
-        sys.exit(1)
-    except yaml.YAMLError as e:
-        print(f"Error parsing configuration file: {e}")
-        sys.exit(1)
-
-config = load_config()
-
-# Function Definitions
 def create_or_use_directory(dir_name):
     """Create a directory if it doesn't exist, or use the existing one."""
-    os.makedirs(dir_name, exist_ok=True)
-    print(f"Using directory: {dir_name}")
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+        print(f"Directory '{dir_name}' created.")
+    else:
+        print(f"Directory '{dir_name}' already exists.")
     return dir_name
 
 def load_data(file_path):
@@ -65,8 +50,7 @@ def load_data(file_path):
         result = chardet.detect(f.read())
     encoding = result['encoding']
     print(f"Detected file encoding: {encoding}")
-    dtype_map = config.get('dtypes', {})
-    return pd.read_csv(file_path, encoding=encoding, dtype=dtype_map)
+    return pd.read_csv(file_path, encoding=encoding)
 
 def analyze_data(df):
     """Perform generic data analysis."""
@@ -91,7 +75,7 @@ def analyze_data(df):
     # Clustering (e.g., KMeans) for numeric columns
     scaler = StandardScaler()
     numeric_scaled = scaler.fit_transform(numeric_df.fillna(0))  # Replace NaNs with 0 or another strategy
-    kmeans = KMeans(n_clusters=config['clustering']['n_clusters'], random_state=42).fit(numeric_scaled)
+    kmeans = KMeans(n_clusters=3, random_state=42).fit(numeric_scaled)
     
     # Assign clusters to the original DataFrame
     df['cluster'] = pd.Series(kmeans.labels_, index=numeric_df.index)
@@ -108,6 +92,7 @@ def analyze_data(df):
     print("Data analysis complete.")
     return analysis
 
+
 def visualize_data(df, output_dir):
     """Generate and save visualizations for all numeric features."""
     sns.set(style="whitegrid")
@@ -115,45 +100,67 @@ def visualize_data(df, output_dir):
     # Select numeric columns
     numeric_df = df.select_dtypes(include=['number'])
     
-    # Correlation heatmap for numeric features
-    if not numeric_df.empty:
-        plt.figure(figsize=(14, 10))
-        correlation_matrix = numeric_df.corr()
+    # Check if there are numeric features to visualize
+    if numeric_df.empty:
+        print("No numeric features found. Skipping visualizations.")
+        return  # Skip visualizations if no numeric features
+
+
+    # Correlation heatmap for all numeric features
+    plt.figure(figsize=(14, 10))
+    correlation_matrix = numeric_df.corr()
+    if correlation_matrix.empty:
+        print("Correlation matrix is empty. Skipping heatmap.")
+    else:
         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
-        plt.title('Correlation Heatmap')
+        plt.title('Correlation Heatmap for Numeric Features')
         heatmap_path = os.path.join(output_dir, 'correlation_heatmap.png')
         plt.savefig(heatmap_path)
         print(f"Saved correlation heatmap: {heatmap_path}")
         plt.close()
 
-    # Pairplot for numeric features with clustering (if applicable)
+    # Pairplot for all numeric features with clustering (if applicable)
     if 'cluster' in df.columns:
         pairplot = sns.pairplot(df, vars=numeric_df.columns, hue='cluster', palette='viridis', markers=["o", "s"])
-        pairplot_path = os.path.join(output_dir, 'pairplot.png')
+        pairplot_path = os.path.join(output_dir, 'pairplot_numeric_features.png')
         pairplot.savefig(pairplot_path)
         print(f"Saved pairplot: {pairplot_path}")
         plt.close()
 
+        # Scatter plot for clusters
+        plt.figure(figsize=(10, 6))
+        sns.scatterplot(x=df[numeric_df.columns[0]], y=df[numeric_df.columns[1]], hue=df['cluster'], palette='viridis')
+        plt.title('Clustered Data Points')
+        scatter_plot_path = os.path.join(output_dir, 'cluster_scatter_plot.png')
+        plt.savefig(scatter_plot_path)
+        print(f"Saved cluster scatter plot: {scatter_plot_path}")
+        plt.close()
 
-def generate_dynamic_prompt(analysis, file_path, df):
-    """Generate a dynamic prompt for the LLM based on data insights."""
-    prompt = f"Analyze the dataset {file_path}. Here is the summary:\n"
 
-    if analysis['missing_values']:
-        prompt += "There are missing values. Suggest imputation strategies.\n"
-    if analysis['outliers']:
-        prompt += "Outliers detected. Suggest methods to handle them.\n"
-    if 'clustering' in analysis:
-        prompt += f"Clustering applied with {config['clustering']['n_clusters']} clusters.\n"
-    
-    return prompt
-
-def generate_narrative(prompt):
+def generate_narrative(analysis, file_path, df, output_dir):
     """Generate narrative using LLM."""
     headers = {
         'Authorization': f'Bearer {AIPROXY_TOKEN}',
         'Content-Type': 'application/json'
     }
+
+    # Prepare data for LLM
+    column_info = [{'name': col, 'type': str(df[col].dtype)} for col in df.columns]
+    context = {
+        'file_name': file_path,
+        'columns': column_info,
+        'summary_statistics': analysis['summary'],
+        'missing_values': analysis['missing_values'],
+        'correlation_matrix': analysis['correlation'],
+        'outliers': analysis['outliers'],
+        'clustering_preview': analysis['clustering'],
+        'cluster_plot': os.path.join(output_dir, 'cluster_scatter_plot.png'),  # Path to cluster plot
+        'heatmap': os.path.join(output_dir, 'correlation_heatmap.png'),  # Path to heatmap
+        'pairplot': os.path.join(output_dir, 'pairplot_numeric_features.png')  # Path to pairplot
+    }
+
+    prompt = f"Analyze the following data and provide insights and suggestions for further analysis: {context}"
+
     data = {
         "model": "gpt-4o-mini",
         "messages": [{"role": "user", "content": prompt}]
@@ -163,34 +170,52 @@ def generate_narrative(prompt):
         response = httpx.post(API_URL, headers=headers, json=data, timeout=30.0)
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
+    except httpx.HTTPStatusError as e:
+        print(f"HTTP error occurred: {e}")
+    except httpx.RequestError as e:
+        print(f"Request error occurred: {e}")
     except Exception as e:
-        print(f"Error during narrative generation: {e}")
-        return "Narrative generation failed."
+        print(f"An unexpected error occurred: {e}")
+    return "Narrative generation failed due to an error."
+
 
 def main(file_path):
     print("Starting autolysis process...")
-
-    output_dir = create_or_use_directory(os.path.splitext(os.path.basename(file_path))[0])
-
+    if not os.path.isfile(file_path):
+        print(f"Error: File '{file_path}' not found.")
+        sys.exit(1)
+    
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    output_dir = create_or_use_directory(base_name)
+    
     print("Loading dataset...")
     df = load_data(file_path)
-
+    print("Dataset loaded successfully.")
+    
     print("Analyzing data...")
     analysis = analyze_data(df)
-
+    
     print("Generating visualizations...")
-    visualize_data(df, output_dir)
-
+    visualize_data(df, output_dir)  # Now generates visualizations for all features
+    
     print("Generating narrative...")
-    prompt = generate_dynamic_prompt(analysis, file_path, df)
-    narrative = generate_narrative(prompt)
-
-    if narrative:
+    narrative = generate_narrative(analysis, file_path, df, output_dir)
+    
+    if narrative != "Narrative generation failed due to an error.":
         readme_path = os.path.join(output_dir, 'README.md')
         with open(readme_path, 'w') as f:
             f.write(narrative)
-        print(f"Narrative written to {readme_path}.")
-
+            f.write("\n\n### Data Visualizations\n")
+            f.write("#### Correlation Heatmap\n")
+            f.write(f"![Correlation Heatmap]({os.path.basename(os.path.join(output_dir, 'correlation_heatmap.png'))})\n")
+            f.write("#### Pairplot\n")
+            f.write(f"![Pairplot]({os.path.basename(os.path.join(output_dir, 'pairplot_numeric_features.png'))})\n")
+            f.write("#### Cluster Scatter Plot\n")
+            f.write(f"![Cluster Scatter Plot]({os.path.basename(os.path.join(output_dir, 'cluster_scatter_plot.png'))})\n")
+        print(f"Narrative successfully written to {readme_path}.")
+    else:
+        print("Narrative generation failed. Skipping README creation.")
+    
     print("Autolysis process completed.")
 
 if __name__ == "__main__":

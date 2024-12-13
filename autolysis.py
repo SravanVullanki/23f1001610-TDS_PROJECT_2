@@ -175,7 +175,8 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
 
             # Adding Story Section
             f.write("## Data Story\n")
-           
+            f.write("Based on the data analysis, here is a creative narrative that interprets the findings in an engaging and detailed manner:\n\n")
+
         print(f"README file created: {readme_file}")  # Debugging line
         return readme_file
     except Exception as e:

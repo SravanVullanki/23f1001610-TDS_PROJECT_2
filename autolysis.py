@@ -1,18 +1,18 @@
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.9"
 # dependencies = [
-#   "httpx",
 #   "pandas",
 #   "seaborn",
 #   "matplotlib",
-#   "chardet",
+#   "numpy",
 #   "scipy",
+#   "openai",
 #   "scikit-learn",
-#   "uv",
 #   "requests",
-#   "openai,"
+#   "ipykernel",  # Added ipykernel
 # ]
 # ///
+
 import os
 import pandas as pd
 import numpy as np
@@ -21,12 +21,10 @@ import matplotlib.pyplot as plt
 import argparse
 import requests
 import json
-import openai  # Ensure you have openai installed: pip install openai
-
+import openai  # Make sure you install this library: pip install openai
 
 # Function to analyze the data (basic summary stats, missing values, correlation matrix)
 def analyze_data(df):
-    """Analyzes the dataset and returns summary statistics, missing values, and correlation matrix."""
     print("Analyzing the data...")  # Debugging line
     # Summary statistics for numerical columns
     summary_stats = df.describe()
@@ -46,7 +44,6 @@ def analyze_data(df):
 
 # Function to detect outliers using the IQR method
 def detect_outliers(df):
-    """Detects outliers using the IQR method."""
     print("Detecting outliers...")  # Debugging line
     # Select only numeric columns
     df_numeric = df.select_dtypes(include=[np.number])
@@ -63,7 +60,6 @@ def detect_outliers(df):
 
 # Function to generate visualizations (correlation heatmap, outliers plot, and distribution plot)
 def visualize_data(corr_matrix, outliers, df, output_dir):
-    """Generates visualizations for correlation, outliers, and distributions."""
     print("Generating visualizations...")  # Debugging line
     # Generate a heatmap for the correlation matrix
     plt.figure(figsize=(10, 8))
@@ -74,7 +70,7 @@ def visualize_data(corr_matrix, outliers, df, output_dir):
     plt.close()
 
     # Check if there are outliers to plot
-    if outliers.sum() > 0:
+    if not outliers.empty and outliers.sum() > 0:
         # Plot the outliers
         plt.figure(figsize=(10, 6))
         outliers.plot(kind='bar', color='red')
@@ -94,8 +90,8 @@ def visualize_data(corr_matrix, outliers, df, output_dir):
         first_numeric_column = numeric_columns[0]  # Get the first numeric column
         plt.figure(figsize=(10, 6))
         sns.histplot(df[first_numeric_column], kde=True, color='blue', bins=30)
-        plt.title(f'Distribution of {first_numeric_column}')
-        dist_plot_file = os.path.join(output_dir, f'distribution_{first_numeric_column}.png')
+        plt.title(f'Distribution')
+        dist_plot_file = os.path.join(output_dir, f'distribution_.png')
         plt.savefig(dist_plot_file)
         plt.close()
     else:
@@ -106,8 +102,9 @@ def visualize_data(corr_matrix, outliers, df, output_dir):
 
 
 # Function to create the README.md with a narrative and visualizations
+# Function to create the README.md with a narrative and visualizations
+# Function to create the README.md with a narrative and visualizations
 def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_dir):
-    """Creates a README file with analysis results and visualizations."""
     print("Creating README file...")  # Debugging line
     # Write the analysis report to a markdown file
     readme_file = os.path.join(output_dir, 'README.md')
@@ -138,7 +135,7 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
             
             f.write("\n")
 
-            # Missing Values Section
+            # Missing Values Section (Formatted as Table)
             f.write("## Missing Values\n")
             f.write("The following columns contain missing values, with their respective counts:\n")
             f.write("\n| Column       | Missing Values Count |\n")
@@ -147,7 +144,7 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
                 f.write(f"| {column} | {count} |\n")
             f.write("\n")
 
-            # Outliers Detection Section
+            # Outliers Detection Section (Formatted as Table)
             f.write("## Outliers Detection\n")
             f.write("The following columns contain outliers detected using the IQR method (values beyond the typical range):\n")
             f.write("\n| Column       | Outlier Count |\n")
@@ -187,9 +184,10 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
         return None
 
 
-# Function to generate a detailed story using OpenAI API through the proxy
+
+
+# Function to generate a detailed story using the new OpenAI API through the proxy
 def question_llm(prompt, context):
-    """Generates a creative story using the OpenAI API."""
     print("Generating story using LLM...")  # Debugging line
     try:
         # Get the AIPROXY_TOKEN from the environment variable
@@ -251,6 +249,7 @@ def question_llm(prompt, context):
         return "Failed to generate story."
 
 
+
 # Main function that integrates all the steps
 def main(csv_file):
     print("Starting the analysis...")  # Debugging line
@@ -306,10 +305,9 @@ def main(csv_file):
     else:
         print("Error generating the README.md file.")
 
-
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage: python autolysis.py <dataset_path>")
+        print("Usage: uv run autolysis.py <dataset_path>")
         sys.exit(1)
     main(sys.argv[1])

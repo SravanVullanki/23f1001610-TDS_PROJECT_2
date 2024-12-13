@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import argparse
 import requests
 import json
-import openai  # Make sure you install this library: pip install openai
+import openai  
 
 # Function to analyze the data (basic summary stats, missing values, correlation matrix)
 def analyze_data(df):
@@ -101,8 +101,6 @@ def visualize_data(corr_matrix, outliers, df, output_dir):
     return heatmap_file, outliers_file, dist_plot_file
 
 
-# Function to create the README.md with a narrative and visualizations
-# Function to create the README.md with a narrative and visualizations
 # Function to create the README.md with a narrative and visualizations
 def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_dir):
     print("Creating README file...")  # Debugging line
@@ -184,8 +182,6 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
         return None
 
 
-
-
 # Function to generate a detailed story using the new OpenAI API through the proxy
 def question_llm(prompt, context):
     print("Generating story using LLM...")  # Debugging line
@@ -249,13 +245,16 @@ def question_llm(prompt, context):
         return "Failed to generate story."
 
 
-
 # Main function that integrates all the steps
 def main(csv_file):
     print("Starting the analysis...")  # Debugging line
 
     # Set the API token as an environment variable
-  
+    token = os.getenv("AIPROXY_TOKEN")
+    if not token:
+        print("AIPROXY_TOKEN environment variable is not set.")
+        return
+
     # Try reading the CSV file with 'ISO-8859-1' encoding to handle special characters
     try:
         df = pd.read_csv(csv_file, encoding='ISO-8859-1')
@@ -308,6 +307,6 @@ def main(csv_file):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage: uv run autolysis.py <dataset_path>")
+        print("Usage: python autolysis.py <dataset_path>")
         sys.exit(1)
     main(sys.argv[1])

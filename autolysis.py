@@ -9,6 +9,7 @@
 #   "scipy",
 #   "scikit-learn",
 #   "uv",
+#   "requests",
 #   "openai,"
 # ]
 # ///

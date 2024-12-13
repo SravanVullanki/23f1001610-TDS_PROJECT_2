@@ -11,7 +11,6 @@
 #   "uv"
 # ]
 # ///
-
 import os
 import sys
 import pandas as pd
@@ -131,6 +130,8 @@ def visualize_data(df, output_dir):
         plt.figure(figsize=(10, 6))
         sns.scatterplot(x=df[numeric_df.columns[0]], y=df[numeric_df.columns[1]], hue=df['cluster'], palette='viridis')
         plt.title('Clustered Data Points')
+        plt.xlabel(numeric_df.columns[0])
+        plt.ylabel(numeric_df.columns[1])
         scatter_plot_path = os.path.join(output_dir, 'cluster_scatter_plot.png')
         plt.savefig(scatter_plot_path)
         print(f"Saved cluster scatter plot: {scatter_plot_path}")
@@ -159,8 +160,29 @@ def generate_narrative(analysis, file_path, df, output_dir):
         'pairplot': os.path.join(output_dir, 'pairplot_numeric_features.png')  # Path to pairplot
     }
 
-    prompt = f"Analyze the following data and provide insights and suggestions for further analysis: {context}"
+    prompt = f"""
+    Analyze the following data and provide insights and suggestions for further analysis:
 
+    File: {context['file_name']}
+    Columns: {context['columns']}
+    Summary Statistics: {context['summary_statistics']}
+    Missing Values: {context['missing_values']}
+    Correlation Matrix: {context['correlation_matrix']}
+    Outliers: {context['outliers']}
+    Clustering: {context['clustering_preview']}
+    
+    Visualizations:
+    - Correlation Heatmap: {context['heatmap']}
+    - Pairplot: {context['pairplot']}
+    - Cluster Scatter Plot: {context['cluster_plot']}
+
+    Please highlight:
+    - Significant correlations, outliers, or clusters.
+    - Potential implications or further analysis opportunities.
+    - Any patterns that should be explored more deeply.
+    """
+    
+    # First LLM Call: Analysis and insights generation
     data = {
         "model": "gpt-4o-mini",
         "messages": [{"role": "user", "content": prompt}]

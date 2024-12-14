@@ -1,3 +1,4 @@
+
 # /// script
 # requires-python = ">=3.9"
 # dependencies = [
@@ -9,7 +10,7 @@
 #   "openai",
 #   "scikit-learn",
 #   "requests",
-#   "ipykernel",  # Added ipykernel
+#   "ipykernel", 
 # ]
 # ///
 
@@ -102,8 +103,6 @@ def visualize_data(corr_matrix, outliers, df, output_dir):
 
 
 # Function to create the README.md with a narrative and visualizations
-# Function to create the README.md with a narrative and visualizations
-# Function to create the README.md with a narrative and visualizations
 def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_dir):
     print("Creating README file...")  # Debugging line
     # Write the analysis report to a markdown file
@@ -111,6 +110,7 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
     try:
         with open(readme_file, 'w') as f:
             f.write("# Automated Data Analysis Report\n\n")
+           
 
             # Introduction Section
             f.write("## Introduction\n")
@@ -175,8 +175,7 @@ def create_readme(summary_stats, missing_values, corr_matrix, outliers, output_d
 
             # Adding Story Section
             f.write("## Data Story\n")
-            f.write("Based on the data analysis, here is a creative narrative that interprets the findings in an engaging and detailed manner:\n\n")
-
+           
         print(f"README file created: {readme_file}")  # Debugging line
         return readme_file
     except Exception as e:
